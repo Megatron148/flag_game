@@ -224,7 +224,8 @@ def get_ai_message(flag_num, worst_region):
             messages=[{"role": "user", "content": prompt}]
         )
         return response.choices[0].message.content
-    except Exception:
+    except Exception as e:
+        print(f"VEXOR error: {e}")
         return ""
 
 # --- AI FLAG PICKER ---
