@@ -147,6 +147,10 @@ if "input_key" not in st.session_state:
     st.session_state.input_key = 0
 if "wrong_attempts" not in st.session_state:
     st.session_state.wrong_attempts = 0
+if "ai_hints" not in st.session_state:
+    st.session_state.ai_hints = []
+if "hints_requested" not in st.session_state:
+    st.session_state.hints_requested = 0
 if "message" not in st.session_state:
     st.session_state.message = ""
 if "message_type" not in st.session_state:
@@ -202,6 +206,43 @@ def get_worst_region():
                 worst = region
     return worst
 
+def generate_ai_hints(country):
+    prompt = f"""
+    You are creating hints for a flag guessing game.
+
+    The correct country is {country}.
+
+    Generate exactly 3 clues:
+    1. A broad geographical clue.
+    2. A clue about the country's culture, history, or geography.
+    3. A more specific clue that makes the country easier to identify.
+
+    Rules:
+    - Never mention the country's name.
+    - Never mention its capital.
+    - Do not mention the flag's colors or design.
+    - Each clue must be one sentence.
+    - Return only the 3 clues, numbered 1, 2, and 3.
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model="openai/gpt-oss-120b",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7
+        )
+
+        hints = response.choices[0].message.content.strip().split("\n")
+        return hints
+
+    except Exception as e:
+        st.error(f"AI Hint Error: {e}")
+        return [
+            "This country has an interesting geographical location.",
+            "Its history and culture make it distinctive.",
+            "Think about its neighboring countries."
+        ]
+
 # --- GET AI MESSAGE ---
 def get_ai_message(flag_num, worst_region):
     try:
@@ -220,7 +261,7 @@ def get_ai_message(flag_num, worst_region):
             prompt = f"You are VEXOR going all out to destroy the player. They have survived to flag {flag_num}. Give a short 1 sentence brutal taunting message showing you are impressed but still going to beat them."
 
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             messages=[{"role": "user", "content": prompt}]
         )
         return response.choices[0].message.content
@@ -276,6 +317,8 @@ def pick_new_flag():
     st.session_state.current_flag = chosen
     st.session_state.used_flags.append(chosen)
     st.session_state.wrong_attempts = 0
+    st.session_state.ai_hints = []
+    st.session_state.hints_requested = 0
     st.session_state.flags_wrong_this_turn = set()
     st.session_state.ai_message = get_ai_message(flag_num, worst)
 
@@ -328,7 +371,7 @@ if st.session_state.game_over:
         worst_for_roast = worst if worst else "general geography"
 
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             messages=[{"role": "user", "content": f"""You are VEXOR, a snarky evil flag game overlord. 
             The player just lost on flag {st.session_state.flag_number}. 
             Here are their stats: {stats_summary}
@@ -378,6 +421,23 @@ if os.path.exists(flag_path):
 else:
     st.error(f"Flag image not found: {flag_path}")
 
+# --- AI GENERATED HINTS ---
+
+if st.button("💡 Get AI Hint"):
+    if st.session_state.hints_requested < 3:
+
+        if not st.session_state.ai_hints:
+            st.session_state.ai_hints = generate_ai_hints(correct_answer)
+
+        st.session_state.hints_requested += 1
+
+if st.session_state.ai_hints:
+    for i in range(st.session_state.hints_requested):
+        st.info(f"💡 AI Hint {i + 1}: {st.session_state.ai_hints[i]}")
+
+if st.session_state.hints_requested >= 3:
+    st.caption("You've used all 3 AI hints!")
+
 # --- SCORE / STREAK / FLAG NUMBER ---
 st.write(f"Flag: **{st.session_state.flag_number}** | Score: **{st.session_state.score}** | Streak: **{st.session_state.streak}**")
 
@@ -408,7 +468,7 @@ if submitted:
             st.session_state.region_stats[region]["correct"] += 1
         try:
             response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="openai/gpt-oss-120b",
                 messages=[{"role": "user", "content": f"Give me one very weird and obscure fun fact about {correct_answer}. Keep it to one sentence and make it surprising and funny."}]
             )
             fun_fact = response.choices[0].message.content
