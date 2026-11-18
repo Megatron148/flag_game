@@ -214,20 +214,28 @@ def generate_ai_hints(country):
     The correct country is {country}.
 
     Generate exactly 3 clues in this order:
-    1. Difficult: A historical clue about the country. Use a lesser-known historical event, historical figure, conflict, empire, or achievement. Avoid obvious facts.
-    2. Medium: A clue about a recognizable landmark, famous person, or geographical feature associated with the country.
-    3. Easy: A clue about something the country is particularly famous for, such as food, culture, exports, wildlife, sports, or traditions.
+    
+    Difficult:
+    Give a historical clue about the country. Use a specific historical event, historical figure, conflict, empire, or achievement. Prefer lesser-known historical facts.
+
+    Medium:
+    Give a clue about a recognizable landmark, famous person, or geographical feature associated with the country.
+
+    Easy:
+    Give a clue about something the country is widely known for, such as food, culture, exports, wildlife, sports, or traditions.
 
     Rules:
     - Never mention the country's name.
     - Never mention its capital.
     - Do not mention the flag's colors or design.
-    - Each clue must be one sentence.
-    - Each clue must become progressively easier to identify the country.
-    - Avoid repeating the same information across clues.
-    - Return only the 3 clues, numbered 1, 2, and 3.
-    - Each clue must follow its assigned category exactly.
-    - Do not substitute a geographical fact for a historical clue.
+    - Each clue must be exactly one sentence.
+    - Each clue must follow its assigned category.
+    - The difficult clue must be historical, not geographical.
+    - The medium clue should be easier to recognize than the difficult clue.
+    - The easy clue should be the most recognizable association.
+    - Do not repeat information between clues.
+    - Return exactly 3 clues, each on a separate line.
+    - Do not include numbers, labels, headings, or explanations.
     """
 
     try:
@@ -237,13 +245,11 @@ def generate_ai_hints(country):
             temperature=0.7
         )
 
-          hints = re.sub(
-        r"\b\d+[\.\)]\s*",
-        "",
-        response.choices[0].message.content
-    ).strip().split("\n")
-          
-        return hints
+        hints = re.sub(
+            r"\b\d+[\.\)]\s*",
+            "",
+            response.choices[0].message.content
+        ).strip().split("\n")
 
     except Exception as e:
         st.error(f"AI Hint Error: {e}")
@@ -252,6 +258,8 @@ def generate_ai_hints(country):
             "Its history and culture make it distinctive.",
             "Think about its neighboring countries."
         ]
+
+    return hints
 
 # --- GET AI MESSAGE ---
 def get_ai_message(flag_num, worst_region):
@@ -479,12 +487,27 @@ if submitted:
         try:
             response = client.chat.completions.create(
                 model="openai/gpt-oss-120b",
-                messages=[{"role": "user", "content": f"Give me one very weird and obscure fun fact about {correct_answer}. Keep it to one sentence and make it surprising and funny."}]
+                messages=[{"role": "user", "content": f"""
+                Give me one interesting and unusual fun fact about {correct_answer}.
+
+                Rules:
+                - The fact must be historically, scientifically, or culturally established.
+                - Do not invent stories, people, events, quotes, or statistics.
+                - Avoid rumors, urban legends, and unverified claims.
+                - Prioritize accuracy over humor.
+                - Make the fact interesting and surprising without exaggerating.
+                - Keep it to one or two sentences.
+                - If you cannot confidently provide an unusual fact, give a well-established general fact instead.
+                """}],
+                temperature=0.3
             )
-            fun_fact = response.choices[0].message.content
+
+            fun_fact = response.choices[0].message.content.strip()
             st.session_state.message = f"✅ Correct!\n\n💡 Fun fact: {fun_fact}"
+
         except Exception:
             st.session_state.message = "✅ Correct!"
+
         st.session_state.message_type = "success"
         st.session_state.score += 1
         st.session_state.streak += 1
@@ -495,15 +518,18 @@ if submitted:
         st.session_state.wrong_attempts += 1
         st.session_state.streak = 0
         st.session_state.input_key += 1
+
         # Only count wrong once per flag per region
         if flag_code not in st.session_state.flags_wrong_this_turn:
             region = get_region(flag_code)
             if region:
                 st.session_state.region_stats[region]["wrong"] += 1
             st.session_state.flags_wrong_this_turn.add(flag_code)
+
         if st.session_state.wrong_attempts >= 3:
             st.session_state.game_over = True
         else:
             st.session_state.message = "❌ Incorrect! Try again."
             st.session_state.message_type = "error"
+
     st.rerun()
