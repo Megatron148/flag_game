@@ -213,15 +213,17 @@ def generate_ai_hints(country):
     The correct country is {country}.
 
     Generate exactly 3 clues:
-    1. A broad geographical clue.
-    2. A clue about the country's culture, history, or geography.
-    3. A more specific clue that makes the country easier to identify.
+    1. Difficult: A historical clue about the country. Focus on a lesser-known historical event, historical significance, or an important moment in its past.
+    2. Medium: A clue about a recognizable landmark, famous person, or geographical feature associated with the country.
+    3. Easy: A clue about something the country is particularly famous or well-known for, such as food, culture, exports, wildlife, or traditions.
 
     Rules:
     - Never mention the country's name.
     - Never mention its capital.
     - Do not mention the flag's colors or design.
     - Each clue must be one sentence.
+    - Each clue must become progressively easier to identify the country.
+    - Avoid repeating the same information across clues.
     - Return only the 3 clues, numbered 1, 2, and 3.
     """
 
