@@ -4,6 +4,7 @@ import os
 import random
 from groq import Groq
 from dotenv import load_dotenv
+import re
 
 # --- AI SETUP ---
 load_dotenv()
@@ -225,6 +226,8 @@ def generate_ai_hints(country):
     - Each clue must become progressively easier to identify the country.
     - Avoid repeating the same information across clues.
     - Return only the 3 clues, numbered 1, 2, and 3.
+    - Each clue must follow its assigned category exactly.
+    - Do not substitute a geographical fact for a historical clue.
     """
 
     try:
@@ -235,7 +238,7 @@ def generate_ai_hints(country):
         )
 
         hints = [
-            hint.split(". ", 1)[-1].strip()
+            re.sub(r"^\s*\d+[\.\)]\s*", "", hint).strip()
             for hint in response.choices[0].message.content.strip().split("\n")
             if hint.strip()
         ]
