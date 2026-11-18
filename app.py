@@ -237,12 +237,12 @@ def generate_ai_hints(country):
             temperature=0.7
         )
 
-        hints = [
-            re.sub(r"^\s*\d+[\.\)]\s*", "", hint).strip()
-            for hint in response.choices[0].message.content.strip().split("\n")
-            if hint.strip()
-        ]
-
+          hints = re.sub(
+        r"\b\d+[\.\)]\s*",
+        "",
+        response.choices[0].message.content
+    ).strip().split("\n")
+          
         return hints
 
     except Exception as e:
