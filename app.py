@@ -212,10 +212,10 @@ def generate_ai_hints(country):
 
     The correct country is {country}.
 
-    Generate exactly 3 clues:
-    1. Difficult: A historical clue about the country. Focus on a lesser-known historical event, historical significance, or an important moment in its past.
+    Generate exactly 3 clues in this order:
+    1. Difficult: A historical clue about the country. Use a lesser-known historical event, historical figure, conflict, empire, or achievement. Avoid obvious facts.
     2. Medium: A clue about a recognizable landmark, famous person, or geographical feature associated with the country.
-    3. Easy: A clue about something the country is particularly famous or well-known for, such as food, culture, exports, wildlife, or traditions.
+    3. Easy: A clue about something the country is particularly famous for, such as food, culture, exports, wildlife, sports, or traditions.
 
     Rules:
     - Never mention the country's name.
@@ -234,7 +234,12 @@ def generate_ai_hints(country):
             temperature=0.7
         )
 
-        hints = response.choices[0].message.content.strip().split("\n")
+        hints = [
+            hint.split(". ", 1)[-1].strip()
+            for hint in response.choices[0].message.content.strip().split("\n")
+            if hint.strip()
+        ]
+
         return hints
 
     except Exception as e:
